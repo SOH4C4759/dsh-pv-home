@@ -1,6 +1,6 @@
 {
   "name": "dsh-pv-home",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "把一支 PV 当作 DeepSeek Harness 的主页：启动与刷新都落在默认窗口、影片全屏循环、Esc 返回、PV 风格的音量按钮、播放期间标题栏跟随影片配色。不改 DSH 本体源码。",
   "license": "MIT",
   "author": "lxj5820",
