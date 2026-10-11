@@ -15,7 +15,8 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "assets",
+    "assets/fonts",
+    "assets/video/film.source.json",
     "lib",
     "src",
     "screensaver",
