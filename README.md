@@ -265,7 +265,7 @@ assets/video/film.source.json  影片出处与抓取记录
 assets/fonts/SpaceMono-Bold.ttf + OFL_spacemono.txt   面板标题用的字体与其许可
 node_modules/@deepseek-ai/schemastery   内核那支 3.18.4 的副本（静态导入必需）
 tools/stub-dom.mjs        桩 DOM：让注入脚本真跑起来
-tools/verify-*.mjs        五套离线自检
+tools/verify-*.mjs        六套离线自检
 tools/install-live.{ps1,sh} / uninstall-live.{ps1,sh}   免重启接线与撤销
 screensaver/              屏保：C# 源码 + 编译/安装/卸载脚本（见上一节）
 ```
@@ -274,10 +274,11 @@ screensaver/              屏保：C# 源码 + 编译/安装/卸载脚本（见�
 
 ```bash
 node build-client.mjs      # 改了 src/client.js 之后重新出产物
-node tools/verify-all.mjs  # 跑全部五套
+node tools/verify-all.mjs  # 跑全部六套
 ```
 | 检查 | 覆盖的契约 |
 |---|---|
+| `verify-docs.mjs` | **文档与磁盘不许漂移**：`files[]` 每项在盘上、且含文档让人去跑的 `tools`/`screensaver`、没有 `private: true`、`exports` 每项存在；README 目录清单里每个路径都存在（`node_modules/` 与影片条目改断言「被 .gitignore 排除而非提交」，而不是断言它存在）；`verify-all` 声明的套件集合与盘上一致；AGENTS.md 的规则编号从 1 连续无洞；**README/MANUAL/NOTICE/AGENTS/package.json 里不许出现本机绝对路径、用户名或凭据** |
 | `verify-injection.mjs` | 恰好两行 head 注入且**配置行在脚本行之前**、总开关关掉时**一行都不注入**、影片缺失时不注入但留告警、路由形态（清单/字体是 exact，影片是 `/clip` 前缀，**没有任何前缀压在 ROUTE 上**）、volatile 引用与普通值两种配置形态都能读 |
 | `verify-routes.mjs` | 挂真 HTTP 服务器打真请求：清单、整片逐字节、Range 206（首段/中段/后缀）、416、HEAD、404、目录穿越、伪造扩展名、**本包 `client.js` 不被自己的路由截胡**、字体逐字节 |
 | `verify-home-screen.mjs` | 把注入脚本加载进桩 DOM 推真事件：挂在 `documentElement` 而非 `body`、**重复执行不会挂出第二个覆盖层**、清理恢复点且只动那一个键、存储不可用时不炸、**Esc 从第一帧起有效**（含播放被拒、解码失败两种情形）、音量按钮的点击/滚轮/键盘三条路径与记住的选择、电平表按音量取整 |

@@ -28,6 +28,7 @@ const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const require = createRequire(import.meta.url)
 
 const SUITES = [
+  ['verify-docs.mjs', '文档与磁盘：打包面、目录清单、套件清单、规则编号、不许外泄本机路径'],
   ['verify-injection.mjs', 'Host 半侧：两行 head 注入、总开关、影片缺失兜底、路由形态'],
   ['verify-routes.mjs', '影片路由：清单、整片、Range 206/416、HEAD、404、遮蔽陷阱'],
   ['verify-home-screen.mjs', '注入脚本：桩 DOM 真跑，清理恢复点、Esc、音量按钮、幂等'],
