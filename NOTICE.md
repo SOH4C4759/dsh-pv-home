@@ -1,13 +1,28 @@
 # NOTICE：第三方素材与许可
 
-本仓库的**代码**按 [LICENSE](LICENSE)（MIT）发布。下面这些不属于那份许可，各自保留原来的许可和权利。
+本仓库的**代码**按 [LICENSE](LICENSE)（MIT）发布。那份许可覆盖的范围**只有源码**，
+下面的影片与字体不属于它，各自保留原来的许可和权利。
+
+> 为什么这句写在这里而不是 LICENSE 里：GitHub 的许可识别（licensee）要求 LICENSE
+> **只有**标准正文。在版权行与 `Permission is hereby granted` 之间插一段范围说明，
+> 识别结果就从 `MIT` 变成 `NOASSERTION`——仓库页面上没有许可徽章，按许可筛选的
+> 生态目录也不会收录它。范围说明放这里、LICENSE 保持纯净，两件事才都对。
 
 The code in this repository is MIT. It does **not** cover the bundled film or
 the fonts, each of which keeps its own licence and rights, listed below.
 
-## 捆绑的影片（`assets/video/film.mp4`）
+## 影片（`assets/video/film.mp4`）—— **不随本仓库发布**
 
-这支片子是**非官方同人作品**，不是本插件的产出。本插件原样嵌入它，未作裁剪、调色或再编码以外的改动（下载时由 yt-dlp 以 `-c copy` 合并视频轨与音轨，画面与声音未重新编码）。
+这支片子是**非官方同人作品**，不是本插件的产出，而且**本仓库不包含它**。
+
+为什么不包含：影片里的**音乐是 Mili 的作品，没有随附的再分发授权**。把这支 40 MB 的
+文件放进公开仓库，等于在再分发那段音乐——角色美术那部分按 CC BY-NC-SA 4.0 是允许
+带署名分享的，音乐不是。所以插件只**播放**它，不**分发**它。
+
+你要用就自己放一份到 `assets/video/film.mp4`（怎么拿见 README 的「换片」一节）。
+插件对文件缺失有兜底，缺了不会崩，只是主页没有影片可放。
+
+播放时插件对影片**不作任何改动**：不裁剪、不调色、不重编码，只在它之上绘制自己的界面层。
 
 | 项 | 内容 |
 |---|---|

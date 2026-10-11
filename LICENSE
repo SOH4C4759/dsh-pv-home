@@ -19,15 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This licence covers the source code in this repository only. It does NOT cover:
-
-- `assets/video/film.mp4` — an unofficial fan PV by a third party, whose
-  character artwork is shared under CC BY-NC-SA 4.0 and whose music remains the
-  property of Mili;
-- `assets/fonts/SpaceMono-Bold.ttf` — SIL Open Font License 1.1, full text in
-  `assets/fonts/OFL_spacemono.txt`.
-
-See NOTICE.md for the complete attribution chain and the terms of each.

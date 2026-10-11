@@ -97,15 +97,24 @@ Electron 那个窗口不是自定义 scheme，而是**同一个 web server**：
 
 ## 换片
 
-把 `assets/video/film.mp4` 换成你的片子即可，**不用改代码、不用重新构建**。清单与 URL 里的版本号按 `mtime-字节数` 生成，同名覆盖会得到新 URL，不会被旧缓存糊弄。
+**先说清楚：本仓库不带影片。** `assets/video/film.mp4` 不在 Git 里，而且是有意如此的——那支 PV 的**音乐是 Mili 的作品、没有随附的再分发授权**，把 40 MB 的文件放进公开仓库等于再分发那段音乐（角色美术那部分按 CC BY-NC-SA 4.0 是可以带署名分享的，音乐不是）。完整的署名链与各自条款见 [NOTICE.md](NOTICE.md)。
 
-真片子请守这几条（都是为了能接进这套播放器）：
+所以第一次用之前，自己放一份到 `assets/video/film.mp4`：
+
+```powershell
+# 出处：Bilibili BV1xCai6aE9g（上传者 西西弗斯的风车）。请按上方 NOTICE 的条款使用。
+yt-dlp -f "bv*+ba/b" -o "assets/video/film.mp4" "https://www.bilibili.com/video/BV1xCai6aE9g/"
+```
+
+放好之后**不用改代码、不用重新构建**。清单与 URL 里的版本号按 `mtime-字节数` 生成，同名覆盖会得到新 URL，不会被旧缓存糊弄。影片缺失时插件有兜底：主页照常挂载、注入照常发生，只是没有影片可放，控制台与清单里会说明原因（`verify-injection.mjs` 有一条断言盯着这条兜底路径）。
+
+换成你自己拍的片子也一样。真片子请守这几条：
 
 | 项 | 建议 | 原因 |
 |---|---|---|
-| 容器 | **`moov` 必须在文件最前** | 否则浏览器要整段下载完才出画面，主页会先黑一会儿。`assets/video/film.mp4` 已实测 moov 在偏移 32 |
+| 容器 | **`moov` 必须在文件最前** | 否则浏览器要整段下载完才出画面，主页会先黑一会儿。原片已实测 moov 在偏移 32；`ffmpeg -movflags +faststart` 可以补齐 |
 | 轨道 | 带音轨 | 静音起播，点按钮出声 |
-| 画幅 | 16:9 | `object-fit: cover`，比例越接近窗口裁得越少 |
+| 画幅 | 16:9 | 默认 `object-fit: contain` 会完整呈现，比例不符时留黑边而不是裁画面；想铺满裁切在设置里切 |
 | 时长 | 任意（会循环） | 主页常驻，按 Esc 随时走 |
 
 设置卡片会自己探「浏览器播不了 / 未优化」并给你原因。
@@ -251,7 +260,7 @@ src/client.js             浏览器半侧：「设置 → 插件」里的卡片
 lib/client.js             构建产物（window.__ModuleLoader__.load 闭包工厂）
 build-client.mjs          产物构建：仓库外的包拿不到共享 preset，自己复现那五行外壳
 cordis.patch.yml          bundle 层：一条 `- insert: id: pv-home`
-assets/video/film.mp4     影片（1080P H.264 + AAC，moov 前置）
+assets/video/film.mp4     影片 —— **不随仓库发布**，自己放一份（见「换片」）
 assets/video/film.source.json  影片出处与抓取记录
 assets/fonts/SpaceMono-Bold.ttf + OFL_spacemono.txt   面板标题用的字体与其许可
 node_modules/@deepseek-ai/schemastery   内核那支 3.18.4 的副本（静态导入必需）
