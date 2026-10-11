@@ -1,0 +1,55 @@
+name: ci
+
+# Pinned image on purpose. `ubuntu-latest` migrates on a schedule and shows up as
+# an ANNOTATION on every run — the job stays green, so it reads as noise, but it
+# puts a yellow badge on a public repository and makes runs non-reproducible
+# across the migration window. The suites themselves are platform-neutral Node;
+# windows-2022 is here because the screen saver is compiled with the in-box C#
+# compiler, and that step is worth running for real.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      # Parsing every file catches the class of mistake that the suites cannot:
+      # a syntax error in a path they do not import.
+      - name: Syntax check
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path . -Recurse -File -Include *.js,*.mjs |
+            Where-Object { $_.FullName -notmatch '\\node_modules\\' }
+          Write-Host "checking $($files.Count) files"
+          $bad = 0
+          foreach ($file in $files) {
+            node --check $file.FullName
+            if ($LASTEXITCODE -ne 0) { Write-Host "::error file=$($file.Name)::syntax error"; $bad++ }
+          }
+          if ($bad -gt 0) { throw "$bad file(s) failed to parse" }
+
+      # The screen saver compiles with the C# compiler that ships with Windows.
+      # -SkipSelfTest: the self-test opens the film, which is deliberately not in
+      # the repository, so that part is a local gate rather than a CI one.
+      - name: Compile the screen saver
+        shell: pwsh
+        run: ./screensaver/build.ps1 -SkipSelfTest
+
+      # Two of the five suites need the kernel's schema library and one needs the
+      # film. Neither exists in a bare checkout, so those are SKIPPED with a
+      # printed reason rather than failed — see tools/verify-all.mjs.
+      - name: Offline suites
+        shell: pwsh
+        run: node tools/verify-all.mjs

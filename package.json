@@ -1,0 +1,64 @@
+{
+  "name": "dsh-pv-home",
+  "version": "0.1.0",
+  "description": "把一支 PV 当作 DeepSeek Harness 的主页：启动与刷新都落在默认窗口、影片全屏循环、Esc 返回、PV 风格的音量按钮、播放期间标题栏跟随影片配色。不改 DSH 本体源码。",
+  "license": "MIT",
+  "author": "lxj5820",
+  "type": "module",
+  "main": "entry.js",
+  "exports": {
+    ".": "./entry.js",
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "assets",
+    "lib",
+    "src",
+    "screensaver",
+    "tools",
+    "cordis.patch.yml",
+    "entry.js",
+    "build-client.mjs",
+    "package.json",
+    "README.md",
+    "MANUAL.md",
+    "AGENTS.md",
+    "NOTICE.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/schemastery": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SOH4C4759/dsh-pv-home.git"
+  },
+  "homepage": "https://github.com/SOH4C4759/dsh-pv-home#readme",
+  "bugs": {
+    "url": "https://github.com/SOH4C4759/dsh-pv-home/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "home-screen",
+    "screensaver",
+    "electron"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+# Line endings are pinned, not left to each machine's core.autocrlf.
+#
+# The suites hash and byte-count real files, and the screen saver's ini records
+# paths, so "the same commit gives the same bytes" is a property this repo
+# actually relies on. Windows defaults to autocrlf=true, which rewrites the
+# working copy on checkout and makes that property false.
+#
+# LF for everything, including the PowerShell and C# sources: both the Windows
+# PowerShell 5.1 parser and the in-box C# compiler accept LF, and the build
+# scripts in this repo are already LF on the author's machine.
+* text=auto eol=lf
+
+# Real binaries. Without these, `text=auto` may still decide a font is text and
+# rewrite bytes inside it.
+*.ttf binary
+*.otf binary
+*.mp4 binary
+*.m4v  binary
+*.scr binary
+*.png binary
+*.jpg binary
+*.ico binary

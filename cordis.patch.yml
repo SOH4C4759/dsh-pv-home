@@ -1,0 +1,14 @@
+# dsh-pv-home bundle layer: mounted by `dsh plugin add`, so a profile gets this
+# row without manual cordis.patch.yml edits. A profile-level patch can still
+# disable the row by id.
+#
+# The id is a contract, not a label: the Host half takes its settings namespace
+# from this entry id, and the browser half spells the same string in
+# `SETTINGS_NAMESPACE`. Renaming it moves the namespace and silently orphans the
+# settings card.
+#
+# Everything else is configured in 设置 → 插件 → 主页, not here.
+
+- insert:
+    - id: pv-home
+      name: dsh-pv-home

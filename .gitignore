@@ -1,0 +1,25 @@
+# A vendored copy of the kernel's schema library lives here when this package is
+# installed as a `link:` from OUTSIDE the profile. It is deliberately NOT
+# committed: a normal install gets it from the profile's own node_modules, and
+# committing a package manager's directory is how repos rot.
+# README「装法」explains both cases.
+node_modules/
+
+# The film is NOT part of this repository, and that is a rights decision rather
+# than a size one. It is an unofficial fan work: the artwork is CC BY-NC-SA 4.0
+# and may be reshared with attribution, but the MUSIC is Mili's and carries no
+# redistribution grant. Publishing a 40 MB file containing it would be
+# redistributing the music. Bring your own video; the plugin plays whatever sits
+# at assets/video/film.mp4 and has a tested fallback when it is absent.
+assets/video/*.mp4
+assets/video/*.m4v
+assets/video/*.webm
+
+# Screen saver build output. `screensaver/build.ps1` regenerates it with the
+# in-box C# compiler, and the ini inside records this machine's absolute film
+# path.
+screensaver/build/
+
+# Python bytecode, from the offline suites' scratch runs.
+__pycache__/
+*.pyc
