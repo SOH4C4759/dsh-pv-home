@@ -1,0 +1,224 @@
+name: Release
+
+# Continuous release. Pushing a `v*` tag publishes a package built from that
+# exact commit. A manual run (`workflow_dispatch`) does the same from the current
+# branch and derives the tag from package.json, so "publish what is on main"
+# needs no local tag dance — and re-running either one repairs a release instead
+# of creating a second one.
+#
+# The asset is `git archive` of the released commit, which is the only content
+# that is genuinely reproducible here: `node_modules/`, editor scratch and local
+# runtime state are untracked by definition, so nothing has to be excluded by
+# hand and the archive cannot silently carry a machine-specific file.
+#
+# Three gates make a bad release impossible rather than merely unlikely:
+#   1. the tag must equal `v` + package.json version (a tag on the wrong commit
+#      or a forgotten version bump fails loudly instead of publishing drift);
+#   2. the package contract is verified against the *unpacked asset*, not the
+#      checkout, so the released bytes are proven installable;
+#   3. **the film must not be in the package.** Its music carries no
+#      redistribution grant (see NOTICE.md), so `assets/video/*.mp4` shipping in
+#      a release asset would be redistributing music this project has no right
+#      to hand out. The checkout never has it (git-ignored); this gate is about
+#      the *built* asset, which is exactly where an allow-list mistake would
+#      surface.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: 'Publish as a draft (invisible to everyone until you publish it)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Package and publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the released commit
+        uses: actions/checkout@v7
+        with:
+          # `git archive` needs the commit object itself; a grafted shallow tip
+          # is not enough once branch and tag have diverged.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Resolve the release identity
+        id: identity
+        run: |
+          set -euo pipefail
+          NAME="$(node -p 'require("./package.json").name')"
+          VERSION="$(node -p 'require("./package.json").version')"
+          if [ -z "$NAME" ] || [ -z "$VERSION" ]; then
+            echo "::error::package.json must carry both \`name\` and \`version\`"
+            exit 1
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Preparing ${NAME} ${VERSION}"
+
+      - name: Refuse to reuse a version that belongs to another commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
+          # A release for this version can already exist, created from an EARLIER
+          # commit. Re-running would then quietly replace its assets with a build
+          # of a different commit — and publishing it would create the tag at the
+          # old commit, whose own build would overwrite them again. Both steps are
+          # silent, and together they leave a release whose tag and contents
+          # disagree. So this asks first, and fails loudly when the answer is no.
+          #
+          # `gh api` writes its 404 body to STDOUT, so "output is empty" is not
+          # how an absent release is detected — the exit status is.
+          if EXISTING="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.target_commitish' 2>/dev/null)"; then
+            :
+          else
+            echo "No release for ${TAG} yet."
+            exit 0
+          fi
+          EXISTING_SHA="$(git rev-parse --verify --quiet "${EXISTING}^{commit}" || echo '')"
+          if [ -z "$EXISTING_SHA" ]; then
+            echo "::error::release ${TAG} exists and targets '${EXISTING}', which this checkout cannot resolve — inspect that release before reusing this version"
+            exit 1
+          fi
+          if [ "$EXISTING_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error::release ${TAG} was created from ${EXISTING_SHA:0:7}, but this run builds ${GITHUB_SHA:0:7}. Bump the version — overwriting a release that belongs to another commit leaves the tag and its assets disagreeing."
+            exit 1
+          fi
+          echo "Release ${TAG} already belongs to this commit; replacing its assets is safe."
+
+      - name: Gate the tag against package.json
+        if: github.event_name == 'push'
+        env:
+          TAG: ${{ github.ref_name }}
+          EXPECTED: v${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ "$TAG" != "$EXPECTED" ]; then
+            echo "::error::tag $TAG was pushed, but package.json declares $EXPECTED — bump the version or move the tag"
+            exit 1
+          fi
+          echo "Gate passed: $TAG matches package.json."
+
+      - name: Build the release package
+        env:
+          NAME: ${{ steps.identity.outputs.name }}
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          ARCHIVE="dist/${NAME}-${VERSION}.zip"
+          git archive --format=zip --prefix="${NAME}-${VERSION}/" -o "$ARCHIVE" "$GITHUB_SHA"
+          # Two shapes: the zip is the whole tree (readable, diffable), the npm
+          # tarball is the one `dsh plugin add file:<tarball>` installs.
+          npm pack --pack-destination dist >/dev/null
+          (cd dist && sha256sum "${NAME}-${VERSION}.zip" "${NAME}-${VERSION}.tgz" > SHA256SUMS.txt)
+          ls -l dist
+          cat dist/SHA256SUMS.txt
+
+      - name: Prove the built assets carry no film and no machine state
+        env:
+          NAME: ${{ steps.identity.outputs.name }}
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="dist/${NAME}-${VERSION}.zip"
+          STAGE="$(mktemp -d)"
+          unzip -q "$ARCHIVE" -d "$STAGE"
+          TREE="$STAGE/${NAME}-${VERSION}"
+
+          if unzip -l "$ARCHIVE" | grep -qE '(^| )(_?node_modules|\.git)/'; then
+            echo "::error::the archive carries node_modules/ or .git/"
+            exit 1
+          fi
+          if unzip -l "$ARCHIVE" | grep -qE '\.mp4$'; then
+            echo "::error::the archive carries an .mp4 — the film is git-ignored because its music has no redistribution grant (NOTICE.md). It must never appear in a release asset."
+            exit 1
+          fi
+          for required in package.json cordis.patch.yml entry.js lib/client.js src/home-screen.js tools/verify-all.mjs NOTICE.md LICENSE; do
+            if [ ! -e "$TREE/$required" ]; then
+              echo "::error::the archive is missing $required"
+              exit 1
+            fi
+          done
+          echo "Archive contract OK: no film, no node_modules/.git, entry points present."
+
+      - name: Prove the tarball is self-contained
+        env:
+          NAME: ${{ steps.identity.outputs.name }}
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          STAGE="$(mktemp -d)"
+          tar -xzf "dist/${NAME}-${VERSION}.tgz" -C "$STAGE"
+          # `npm pack` carries only the `files` allow-list, so this is the check
+          # that the allow-list is complete: the manifest, the bundle patch and
+          # the injection entry point must all be inside.
+          test -f "$STAGE/package/package.json"
+          test -f "$STAGE/package/cordis.patch.yml"
+          test -f "$STAGE/package/entry.js"
+          if find "$STAGE" -name '*.mp4' | grep -q .; then
+            echo "::error::the tarball carries an .mp4"
+            exit 1
+          fi
+          echo "Tarball contract OK."
+
+      - name: Run the self-checks against the unpacked archive
+        env:
+          NAME: ${{ steps.identity.outputs.name }}
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          STAGE="$(mktemp -d)"
+          unzip -q "dist/${NAME}-${VERSION}.zip" -d "$STAGE"
+          # This runs the checker against the RELEASED BYTES, not the checkout.
+          # Some suites print SKIP with a reason when a dependency or the film is
+          # absent — that is the environment, and it is reported as such.
+          node "$STAGE/${NAME}-${VERSION}/tools/verify-all.mjs"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NAME: ${{ steps.identity.outputs.name }}
+          VERSION: ${{ steps.identity.outputs.version }}
+          DRAFT_INPUT: ${{ inputs.draft }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="v${VERSION}"
+            if [ "$DRAFT_INPUT" = "true" ]; then DRAFT="--draft"; else DRAFT=""; fi
+          else
+            TAG="$GITHUB_REF_NAME"
+            DRAFT=""
+          fi
+          echo "Publishing $TAG (draft: ${DRAFT:-no})"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # A re-run must repair the release, never create a second one.
+            gh release upload "$TAG" dist/* --clobber
+          else
+            # `--target` matters only when the tag does not exist yet, which is
+            # exactly the manual case; the API ignores it otherwise.
+            gh release create "$TAG" dist/* \
+              --target "$GITHUB_SHA" \
+              --title "${NAME} ${TAG}" \
+              --generate-notes $DRAFT
+          fi
+          gh release view "$TAG" --json tagName,isDraft,assets \
+            --jq '{tag: .tagName, draft: .isDraft, assets: [.assets[].name]}'
